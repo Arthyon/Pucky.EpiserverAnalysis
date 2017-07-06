@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Pucky.EpiserverAnalysis
@@ -50,6 +45,9 @@ namespace Pucky.EpiserverAnalysis
 
             if (HasCultureSpecificAttribute(attributes))
                 return;
+
+            if (!NameSuggestsATextField(property))
+                return;
            
             var diagnostic = Diagnostic.Create(Rule, property.Locations[0], property.Name);
 
@@ -61,5 +59,28 @@ namespace Pucky.EpiserverAnalysis
 
         static bool HasCultureSpecificAttribute(ImmutableArray<AttributeData> attributes)
             => attributes.Any(i => i.AttributeClass.ToString() == "EPiServer.DataAnnotations.CultureSpecificAttribute");
+
+        static bool NameSuggestsATextField(IPropertySymbol property)
+        {
+            var name = property.Name.ToLowerInvariant();
+            foreach (var nameFragment in PossibleTextFieldNameFragments)
+                if (name.Contains(nameFragment))
+                    return true;
+
+            return false;
+        }
+
+        static string[] PossibleTextFieldNameFragments =>
+            new[] {
+                "text",
+                "description",
+                "header",
+                "heading",
+                "title",
+                "summary",
+                "body",
+                "headline",
+                "label"
+            };
     }
 }
